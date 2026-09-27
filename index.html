@@ -309,16 +309,17 @@ function connect(){
    });
 }
 
-function others(){return Object.keys(S.players).filter(p=>p!==me.pid)}
-function partnerName(){const o=others();return o.length?o.map(p=>S.players[p]).join(' & '):'je partner'}
-function revealed(pos){const picks=S.picks[pos]||{};const ps=Object.keys(S.players);return ps.length>=2&&ps.every(p=>picks[p])}
+function activeIds(pos){const set=new Set([me.pid,...Object.keys(online),...Object.keys(S.picks[pos]||{})]);return [...set]}
+function others(){return activeIds(S.pos).filter(p=>p!==me.pid)}
+function partnerName(){const o=others();return o.length?o.map(p=>S.players[p]||'je partner').join(' & '):'je partner'}
+function revealed(pos){const picks=S.picks[pos]||{};if(pos!==S.pos)return Object.keys(picks).length>=2;const ps=activeIds(pos);return ps.length>=2&&ps.every(p=>picks[p])}
 function scoreInfo(){let m=0,n=0;for(const pos in S.picks){if(!revealed(+pos))continue;n++;const v=Object.values(S.picks[pos]);if(v.every(x=>x===v[0]))m++}return{m,n}}
 
 function render(){renderHeader();renderStage();renderChat()}
 
 function renderHeader(){
-  const ids=Object.keys(S.players);
-  $('people').innerHTML=ids.map(p=>`<span><span class="dot ${online[p]||p===me.pid&&connected?'on':''}"></span> ${esc(p===me.pid?'jij':S.players[p])}</span>`).join('')
+  const ids=[me.pid,...Object.keys(online).filter(p=>p!==me.pid)];
+  $('people').innerHTML=ids.map(p=>`<span><span class="dot ${online[p]||p===me.pid&&connected?'on':''}"></span> ${esc(p===me.pid?'jij':S.players[p]||'?')}</span>`).join('')
     +(ids.length<2?`<span>wacht op speler 2</span>`:'');
 }
 
