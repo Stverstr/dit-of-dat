@@ -238,7 +238,7 @@ function merge(o){
   if(!o) return;
   const r=o.round||0, mine=S.round||0;
   if(r<mine) return;
-  if(r>mine){S={round:r,pos:0,players:Object.assign({},S.players,o.players||{}),picks:{},chat:[]};order=buildOrder(seedFor(r));lastVerdictPos=-1}
+  if(r>mine){S={round:r,pos:0,players:Object.assign({},o.players||{}),picks:{},chat:[]};order=buildOrder(seedFor(r));lastVerdictPos=-1}
   if(typeof o.pos==='number' && o.pos>S.pos) S.pos=o.pos;
   Object.assign(S.players, o.players||{});
   for(const p in (o.picks||{})){S.picks[p]=Object.assign({},o.picks[p],S.picks[p]||{})}
@@ -258,7 +258,7 @@ function onAppReady(){
       <div class="panel stack lobby">
         <label class="small" for="nameInput">Je naam</label>
         <input class="field" id="nameInput" maxlength="20" placeholder="Hoe heet je?" value="${esc(me.name)}">
-        ${invited?`<button class="btn btn-main" id="joinInvited">Meedoen met spel ${invited}</button>`
+        ${invited?`<button class="btn btn-main" id="joinInvited">Meedoen met spel ${invited}</button><div class="small" style="text-align:center"><a href="?" id="otherGame">Of start een ander spel</a></div>`
                  :`<button class="btn btn-main" id="createBtn">Nieuw spel starten</button>
                    <div class="divider">of</div>
                    <div class="code-row"><input class="field" id="codeInput" maxlength="4" placeholder="CODE" aria-label="Spelcode"><button class="btn btn-ghost" id="joinBtn">Meedoen</button></div>`}
@@ -266,7 +266,7 @@ function onAppReady(){
       </div>
     </div>`;
   const needName=()=>{const n=$('nameInput').value.trim();if(!n){$('nameInput').classList.add('err');$('nameInput').focus();setTimeout(()=>$('nameInput').classList.remove('err'),700);return null}me.name=n;ls('dof-name',n);return n};
-  if(invited) $('joinInvited').onclick=()=>{if(needName())startGame(invited)};
+  if(invited){$('joinInvited').onclick=()=>{if(needName())startGame(invited)};$('otherGame').onclick=e=>{e.preventDefault();history.replaceState(null,'',location.pathname);onAppReady()};}
   else{
     $('createBtn').onclick=()=>{if(needName())startGame(newCode())};
     const join=()=>{if(!needName())return;const c=$('codeInput').value.toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){$('codeInput').classList.add('err');setTimeout(()=>$('codeInput').classList.remove('err'),700);return}startGame(c)};
@@ -276,7 +276,7 @@ function onAppReady(){
 
 /* ---------- game ---------- */
 function startGame(c){
-  code=c;
+  code=c; S={round:0,pos:0,players:{},picks:{},chat:[]}; lastVerdictPos=-1;
   try{const saved=JSON.parse(ls('dof-room-'+code)||'null');if(saved)S=Object.assign(S,saved)}catch(e){}
   order=buildOrder(seedFor(S.round||0));
   S.players[me.pid]=me.name; save();
@@ -292,12 +292,12 @@ function startGame(c){
 
 function connect(){
   if(!window.supabase){$('conn').textContent='Geen verbinding met de server. Herlaad de pagina.';return}
-  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  sb=sb||window.supabase.createClient(SUPA_URL,SUPA_KEY);
   channel=sb.channel('dilemma-'+code,{config:{broadcast:{self:false},presence:{key:me.pid}}});
   channel
    .on('broadcast',{event:'hello'},({payload})=>{merge(payload);save();render();send('state',S)})
    .on('broadcast',{event:'state'},({payload})=>{merge(payload);save();render()})
-   .on('broadcast',{event:'reset'},({payload})=>{merge(payload);save();render();window.scrollTo({top:0,behavior:'smooth'});toast('Nieuw spel gestart')})
+   .on('broadcast',{event:'reset'},({payload})=>{if((payload.round||0)<=(S.round||0))return;merge(payload);save();leaveToLobby();toast('Nieuw spel: kies je naam')})
    .on('broadcast',{event:'pick'},({payload:p})=>{if((p.round||0)!==(S.round||0))return;S.picks[p.pos]=S.picks[p.pos]||{};S.picks[p.pos][p.pid]=p.choice;S.players[p.pid]=p.name;save();render()})
    .on('broadcast',{event:'next'},({payload:p})=>{if((p.round||0)===(S.round||0)&&p.pos>S.pos){S.pos=p.pos;save();render();window.scrollTo({top:0,behavior:'smooth'})}})
    .on('broadcast',{event:'chat'},({payload:m})=>{if((m.round||0)!==(S.round||0))return;if(!S.chat.some(x=>x.id===m.id)){S.chat.push(m);save();renderChat(true);if(navigator.vibrate)navigator.vibrate(30)}})
@@ -309,9 +309,10 @@ function connect(){
    });
 }
 
+function nameOf(p){return (online[p]&&online[p][0]&&online[p][0].name)||S.players[p]||'je partner'}
 function activeIds(pos){const set=new Set([me.pid,...Object.keys(online),...Object.keys(S.picks[pos]||{})]);return [...set]}
 function others(){return activeIds(S.pos).filter(p=>p!==me.pid)}
-function partnerName(){const o=others();return o.length?o.map(p=>S.players[p]||'je partner').join(' & '):'je partner'}
+function partnerName(){const o=others();return o.length?o.map(nameOf).join(' & '):'je partner'}
 function revealed(pos){const picks=S.picks[pos]||{};if(pos!==S.pos)return Object.keys(picks).length>=2;const ps=activeIds(pos);return ps.length>=2&&ps.every(p=>picks[p])}
 function scoreInfo(){let m=0,n=0;for(const pos in S.picks){if(!revealed(+pos))continue;n++;const v=Object.values(S.picks[pos]);if(v.every(x=>x===v[0]))m++}return{m,n}}
 
@@ -319,7 +320,7 @@ function render(){renderHeader();renderStage();renderChat()}
 
 function renderHeader(){
   const ids=[me.pid,...Object.keys(online).filter(p=>p!==me.pid)];
-  $('people').innerHTML=ids.map(p=>`<span><span class="dot ${online[p]||p===me.pid&&connected?'on':''}"></span> ${esc(p===me.pid?'jij':S.players[p]||'?')}</span>`).join('')
+  $('people').innerHTML=ids.map(p=>`<span><span class="dot ${online[p]||p===me.pid&&connected?'on':''}"></span> ${esc(p===me.pid?'jij':nameOf(p))}</span>`).join('')
     +(ids.length<2?`<span>wacht op speler 2</span>`:'');
 }
 
@@ -329,7 +330,7 @@ function renderStage(){
   if(S.pos>=order.length){const {m,n}=scoreInfo();
     $('actions').innerHTML='';st.innerHTML=`<div class="end"><h2>Alles gekozen</h2><p>Jullie dachten ${m} van de ${n} keer hetzelfde.</p><button class="btn btn-main" style="max-width:300px" onclick="resetGame(true)">Nieuw spel</button></div>`;return}
   const it=order[S.pos], picks=S.picks[S.pos]||{}, mine=picks[me.pid], rev=revealed(S.pos);
-  const whoChose=side=>Object.keys(picks).filter(p=>picks[p]===side).map(p=>`<span class="chip">${esc(p===me.pid?'jij':S.players[p]||'?')}</span>`).join('');
+  const whoChose=side=>Object.keys(picks).filter(p=>picks[p]===side).map(p=>`<span class="chip">${esc(p===me.pid?'jij':nameOf(p))}</span>`).join('');
   const partnerPicked=others().some(p=>picks[p]);
   const {m,n}=scoreInfo();
   let status;
@@ -385,8 +386,17 @@ function renderChat(scroll){
 function resetGame(noAsk){
   if(noAsk!==true&&!confirm('Opnieuw beginnen? Jullie keuzes en de chat worden gewist, voor jullie allebei.'))return;
   const r=(S.round||0)+1;
-  S={round:r,pos:0,players:S.players,picks:{},chat:[]};order=buildOrder(seedFor(r));lastVerdictPos=-1;
-  save();send('reset',{round:r,players:S.players});render();window.scrollTo({top:0,behavior:'smooth'});toast('Nieuw spel gestart');
+  S={round:r,pos:0,players:{},picks:{},chat:[]};order=buildOrder(seedFor(r));lastVerdictPos=-1;
+  save();
+  const ch=channel; channel=null;
+  if(ch) ch.send({type:'broadcast',event:'reset',payload:{round:r,players:{}}}).catch(()=>{}).finally(()=>setTimeout(()=>{try{sb.removeChannel(ch)}catch(e){}},300));
+  leaveToLobby();
+}
+function leaveToLobby(){
+  if(channel){try{sb.removeChannel(channel)}catch(e){}channel=null}
+  online={};connected=false;
+  $('game').style.display='none';$('lobby').style.display='';$('chatInput').value='';
+  onAppReady();window.scrollTo({top:0});
 }
 async function invite(){
   const url=location.origin+location.pathname+'?room='+code;
