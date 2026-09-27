@@ -126,6 +126,7 @@ button{cursor:pointer}
       <div class="room">
         <span class="room-code" id="roomCode"></span>
         <button class="invite" id="inviteBtn">Nodig uit</button>
+        <button class="invite" id="resetBtn">Nieuw spel</button>
       </div>
       <div class="people" id="people"></div>
     </div>
@@ -190,11 +191,15 @@ function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');
 const me={pid:ls('dof-pid')||uid(), name:ls('dof-name')||''};
 ls('dof-pid',me.pid);
 let code=null, order=[], online={}, connected=false;
-let S={pos:0, players:{}, picks:{}, chat:[]};
+let S={round:0, pos:0, players:{}, picks:{}, chat:[]};
+const seedFor=r=>r?code+':'+r:code;
 
 function save(){ls('dof-room-'+code, JSON.stringify(S))}
 function merge(o){
   if(!o) return;
+  const r=o.round||0, mine=S.round||0;
+  if(r<mine) return;
+  if(r>mine){S={round:r,pos:0,players:Object.assign({},S.players,o.players||{}),picks:{},chat:[]};order=buildOrder(seedFor(r));lastVerdictPos=-1}
   if(typeof o.pos==='number' && o.pos>S.pos) S.pos=o.pos;
   Object.assign(S.players, o.players||{});
   for(const p in (o.picks||{})){S.picks[p]=Object.assign({},o.picks[p],S.picks[p]||{})}
@@ -232,15 +237,17 @@ function onAppReady(){
 
 /* ---------- game ---------- */
 function startGame(c){
-  code=c; order=buildOrder(code);
+  code=c;
   try{const saved=JSON.parse(ls('dof-room-'+code)||'null');if(saved)S=Object.assign(S,saved)}catch(e){}
+  order=buildOrder(seedFor(S.round||0));
   S.players[me.pid]=me.name; save();
   history.replaceState(null,'','?room='+code);
   $('lobby').style.display='none'; $('game').style.display='block';
   $('roomCode').textContent=code;
   $('inviteBtn').onclick=invite;
+  $('resetBtn').onclick=resetGame;
   $('chatForm').onsubmit=e=>{e.preventDefault();const t=$('chatInput').value.trim();if(!t)return;
-    const m={id:uid(),pid:me.pid,name:me.name,text:t,pos:S.pos,ts:Date.now()};S.chat.push(m);save();send('chat',m);$('chatInput').value='';renderChat(true)};
+    const m={id:uid(),pid:me.pid,name:me.name,text:t,pos:S.pos,round:S.round||0,ts:Date.now()};S.chat.push(m);save();send('chat',m);$('chatInput').value='';renderChat(true)};
   render(); connect();
 }
 
@@ -251,9 +258,10 @@ function connect(){
   channel
    .on('broadcast',{event:'hello'},({payload})=>{merge(payload);save();render();send('state',S)})
    .on('broadcast',{event:'state'},({payload})=>{merge(payload);save();render()})
-   .on('broadcast',{event:'pick'},({payload:p})=>{S.picks[p.pos]=S.picks[p.pos]||{};S.picks[p.pos][p.pid]=p.choice;S.players[p.pid]=p.name;save();render()})
-   .on('broadcast',{event:'next'},({payload:p})=>{if(p.pos>S.pos){S.pos=p.pos;save();render();window.scrollTo({top:0,behavior:'smooth'})}})
-   .on('broadcast',{event:'chat'},({payload:m})=>{if(!S.chat.some(x=>x.id===m.id)){S.chat.push(m);save();renderChat(true);if(navigator.vibrate)navigator.vibrate(30)}})
+   .on('broadcast',{event:'reset'},({payload})=>{merge(payload);save();render();window.scrollTo({top:0,behavior:'smooth'});toast('Nieuw spel gestart')})
+   .on('broadcast',{event:'pick'},({payload:p})=>{if((p.round||0)!==(S.round||0))return;S.picks[p.pos]=S.picks[p.pos]||{};S.picks[p.pos][p.pid]=p.choice;S.players[p.pid]=p.name;save();render()})
+   .on('broadcast',{event:'next'},({payload:p})=>{if((p.round||0)===(S.round||0)&&p.pos>S.pos){S.pos=p.pos;save();render();window.scrollTo({top:0,behavior:'smooth'})}})
+   .on('broadcast',{event:'chat'},({payload:m})=>{if((m.round||0)!==(S.round||0))return;if(!S.chat.some(x=>x.id===m.id)){S.chat.push(m);save();renderChat(true);if(navigator.vibrate)navigator.vibrate(30)}})
    .on('presence',{event:'sync'},()=>{online=channel.presenceState();for(const k in online){const n=online[k][0]&&online[k][0].name;if(n)S.players[k]=n}renderHeader();renderStage()})
    .subscribe(async status=>{
      connected=status==='SUBSCRIBED';
@@ -279,7 +287,7 @@ let lastVerdictPos=-1;
 function renderStage(){
   const st=$('stage');
   if(S.pos>=order.length){const {m,n}=scoreInfo();
-    $('actions').innerHTML='';st.innerHTML=`<div class="end"><h2>Alles gekozen</h2><p>Jullie dachten ${m} van de ${n} keer hetzelfde.</p><button class="btn btn-main" style="max-width:300px" onclick="location.href=location.pathname">Nieuw spel</button></div>`;return}
+    $('actions').innerHTML='';st.innerHTML=`<div class="end"><h2>Alles gekozen</h2><p>Jullie dachten ${m} van de ${n} keer hetzelfde.</p><button class="btn btn-main" style="max-width:300px" onclick="resetGame(true)">Nieuw spel</button></div>`;return}
   const it=order[S.pos], picks=S.picks[S.pos]||{}, mine=picks[me.pid], rev=revealed(S.pos);
   const whoChose=side=>Object.keys(picks).filter(p=>picks[p]===side).map(p=>`<span class="chip">${esc(p===me.pid?'jij':S.players[p]||'?')}</span>`).join('');
   const partnerPicked=others().some(p=>picks[p]);
@@ -311,9 +319,9 @@ function renderStage(){
 function pick(side){
   if((S.picks[S.pos]||{})[me.pid]) return;
   S.picks[S.pos]=S.picks[S.pos]||{}; S.picks[S.pos][me.pid]=side; save();
-  send('pick',{pos:S.pos,pid:me.pid,name:me.name,choice:side}); render();
+  send('pick',{round:S.round||0,pos:S.pos,pid:me.pid,name:me.name,choice:side}); render();
 }
-function next(){S.pos=S.pos+1;save();send('next',{pos:S.pos});render();window.scrollTo({top:0,behavior:'smooth'});$('chatInput').blur()}
+function next(){S.pos=S.pos+1;save();send('next',{round:S.round||0,pos:S.pos});render();window.scrollTo({top:0,behavior:'smooth'});$('chatInput').blur()}
 
 function renderChat(scroll){
   const list=S.chat.filter(m=>m.pos===S.pos);
@@ -322,6 +330,12 @@ function renderChat(scroll){
   $('msgs').scrollTop=$('msgs').scrollHeight;
 }
 
+function resetGame(noAsk){
+  if(noAsk!==true&&!confirm('Opnieuw beginnen? Jullie keuzes en de chat worden gewist, voor jullie allebei.'))return;
+  const r=(S.round||0)+1;
+  S={round:r,pos:0,players:S.players,picks:{},chat:[]};order=buildOrder(seedFor(r));lastVerdictPos=-1;
+  save();send('reset',{round:r,players:S.players});render();window.scrollTo({top:0,behavior:'smooth'});toast('Nieuw spel gestart');
+}
 async function invite(){
   const url=location.origin+location.pathname+'?room='+code;
   const text=`Speel "Dit of dat" met me. Spelcode ${code}.`;
