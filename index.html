@@ -116,6 +116,25 @@ button{cursor:pointer}
 .sep b{color:var(--ink);font-weight:600}
 #game{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "chat" "actions" "conn";column-gap:28px}
 #game>.top{grid-area:top} #stage{grid-area:stage} #game>.chat{grid-area:chat} #actions{grid-area:actions} #conn{grid-area:conn}
+@media(max-width:899px){
+  #game{height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    grid-template-rows:auto auto minmax(0,1fr) auto auto;padding:10px 12px 12px}
+  #game>.top{margin-bottom:8px;gap:6px}
+  .invite{padding:5px 11px;font-size:.82rem} .people{font-size:.8rem} .room-code{font-size:.95rem}
+  .meta{margin-bottom:6px;font-size:.8rem}
+  .duel{grid-template-columns:1fr 1fr;column-gap:16px}
+  .opt{min-height:86px;padding:12px 12px 10px;border-radius:18px}
+  .opt.mine{outline-width:3px;outline-offset:3px}
+  .opt .txt{font-size:clamp(1rem,4.4vw,1.25rem);line-height:1.12}
+  .chips{margin-top:6px;min-height:0;gap:4px} .chip{font-size:.72rem;padding:2px 8px}
+  .of-badge{width:44px;height:40px;font-size:.78rem}
+  .verdict{font-size:1.25rem;margin:8px 0 0}
+  .status{margin:8px 0 0;font-size:.88rem;min-height:0}
+  #game>.chat{margin-top:10px;display:flex;flex-direction:column;min-height:0}
+  #game>.chat .msgs{flex:1;max-height:none;min-height:0}
+  #actions{margin-top:8px} #actions .btn{padding:11px}
+  .skip{padding:2px}
+}
 @media(min-width:900px){
   #game{max-width:1200px;grid-template-columns:minmax(0,520px) minmax(320px,1fr);grid-template-rows:auto auto auto 1fr;
     grid-template-areas:"top top" "stage chat" "actions chat" "conn chat";align-items:start}
