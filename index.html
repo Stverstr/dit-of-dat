@@ -114,11 +114,11 @@ button{cursor:pointer}
 .conn{font-size:.8rem;color:var(--a);text-align:center;margin-top:8px}
 .sep{align-self:center;font-size:.78rem;color:var(--muted);text-align:center;margin:8px 0 2px;max-width:90%}
 .sep b{color:var(--ink);font-weight:600}
-#game{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "chat" "actions" "conn";column-gap:28px}
+#game{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "actions" "chat" "conn";column-gap:28px}
 #game>.top{grid-area:top} #stage{grid-area:stage} #game>.chat{grid-area:chat} #actions{grid-area:actions} #conn{grid-area:conn}
 @media(max-width:899px){
   #game{height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
-    grid-template-rows:auto auto minmax(0,1fr) auto auto;padding:10px 12px 12px}
+    grid-template-rows:auto auto auto minmax(0,1fr) auto;padding:10px 12px 12px}
   #game>.top{margin-bottom:8px;gap:6px}
   .invite{padding:5px 11px;font-size:.82rem} .people{font-size:.8rem} .room-code{font-size:.95rem}
   .meta{margin-bottom:6px;font-size:.8rem}
