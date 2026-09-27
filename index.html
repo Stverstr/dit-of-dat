@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dit of dat</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌶️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg:#24122E; --bg2:#321A40; --line:#4A2B5A;
+  --ink:#FBEFF4; --muted:#B79BC4;
+  --a:#FF7A9A; --b:#6FE3C8; --gold:#FFD166;
+  --font:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.wrap{max-width:720px;margin:0 auto;padding:18px 18px 28px}
+
+/* gate */
+#gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.gate-title{font-size:clamp(2.6rem,11vw,4.5rem);font-weight:800;line-height:.95;letter-spacing:-.03em;margin:0 0 28px;text-align:center}
+.gate-title .of{display:block;font-size:.4em;font-weight:400;color:var(--muted);letter-spacing:0;margin:.3em 0}
+.gate-title .l{color:var(--a)} .gate-title .r{color:var(--b)}
+.panel{background:var(--bg2);border:1px solid var(--line);border-radius:22px;padding:24px;width:100%;max-width:380px}
+.field{width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);outline:none;font-size:1.05rem}
+.field:focus{border-color:var(--muted)}
+.btn{width:100%;padding:14px 18px;border:none;border-radius:14px;font-weight:600;font-size:1.05rem}
+.btn-main{background:var(--ink);color:var(--bg)}
+.btn-ghost{background:transparent;border:1.5px solid var(--line)}
+.stack>*+*{margin-top:12px}
+.small{font-size:.85rem;color:var(--muted)}
+.small a{color:var(--muted)}
+.err{border-color:var(--a)!important}
+
+/* lobby */
+.lobby h2{font-size:1.5rem;margin:0 0 4px;font-weight:800;letter-spacing:-.01em}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.9rem}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.code-row{display:flex;gap:8px}
+.code-row .field{text-transform:uppercase;letter-spacing:.2em;font-weight:600;text-align:center}
+.code-row .btn{width:auto;white-space:nowrap}
+
+/* game header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.room{display:flex;align-items:center;gap:10px}
+.room-code{font-weight:800;letter-spacing:.15em;font-size:1.05rem}
+.people{display:flex;gap:6px;align-items:center;font-size:.9rem;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:#6b5a73;display:inline-block}
+.dot.on{background:var(--b);box-shadow:0 0 0 3px rgba(111,227,200,.18)}
+.invite{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:.9rem;font-weight:600}
+.score{font-size:.9rem;color:var(--muted)}
+.score b{color:var(--gold);font-weight:800}
+
+.meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:.9rem;color:var(--muted)}
+
+/* the split */
+.duel{position:relative;display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:620px){.duel{grid-template-columns:1fr 1fr}}
+.opt{position:relative;min-height:150px;border-radius:26px;border:none;padding:22px 20px 20px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;transition:transform .15s ease, opacity .25s ease}
+.opt .txt{font-size:clamp(1.45rem,5.6vw,2.1rem);font-weight:800;line-height:1.08;letter-spacing:-.02em;color:var(--bg)}
+.opt.a{background:var(--a)} .opt.b{background:var(--b)}
+.opt:not(:disabled):active{transform:scale(.98)}
+.opt:disabled{cursor:default}
+.opt.faded{opacity:.35}
+.opt.mine{outline:4px solid var(--ink);outline-offset:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;min-height:30px}
+.chip{background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 12px;font-size:.85rem;font-weight:600}
+.of-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:var(--bg);border:3px solid var(--bg);display:grid;place-items:center;font-weight:800;font-size:1rem;color:var(--ink);pointer-events:none;z-index:2}
+
+.status{text-align:center;margin:22px 0 6px;min-height:1.6em;color:var(--muted)}
+.verdict{text-align:center;margin:18px 0 4px;font-size:clamp(1.6rem,7vw,2.4rem);font-weight:800;letter-spacing:-.02em}
+.verdict.match{color:var(--gold)}
+@media (prefers-reduced-motion:no-preference){.verdict{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.actions .btn{max-width:320px}
+.skip{background:none;border:none;color:var(--muted);text-decoration:underline;font-size:.9rem;padding:6px}
+
+/* chat */
+.chat{margin-top:26px;background:var(--bg2);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.msgs{max-height:240px;min-height:70px;overflow-y:auto;padding:14px 14px 4px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:8px 13px;border-radius:16px;background:var(--bg);font-size:.97rem;word-wrap:break-word}
+.msg .who{display:block;font-size:.75rem;color:var(--muted);font-weight:600}
+.msg.me{align-self:flex-end;background:var(--ink);color:var(--bg)}
+.msg.me .who{color:#7a5d86}
+.empty{color:var(--muted);font-size:.9rem;text-align:center;padding:6px 0 10px}
+.chat form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.chat .field{padding:11px 14px}
+.chat .btn{width:auto;padding:11px 16px}
+
+.end{text-align:center;padding:30px 0}
+.end h2{font-size:2.4rem;margin:0 0 8px;letter-spacing:-.02em}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;font-size:.9rem;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.conn{font-size:.8rem;color:var(--a);text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div id="gate">
+  <h1 class="gate-title"><span class="l">Dit</span><span class="of">of</span><span class="r">dat</span></h1>
+  <div class="panel stack">
+    <input type="password" id="pwInput" class="field" placeholder="Wachtwoord" aria-label="Wachtwoord" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="btn btn-main" onclick="checkPw()">Toegang</button>
+    <div class="small" style="text-align:center"><a href="https://stverstr.github.io">Portfolio</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <div class="wrap" id="lobby"></div>
+  <div class="wrap" id="game" style="display:none">
+    <div class="top">
+      <div class="room">
+        <span class="room-code" id="roomCode"></span>
+        <button class="invite" id="inviteBtn">Nodig uit</button>
+      </div>
+      <div class="people" id="people"></div>
+    </div>
+    <div id="stage"></div>
+    <div class="chat">
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <form id="chatForm" autocomplete="off">
+        <input class="field" id="chatInput" maxlength="300" placeholder="Zeg er iets over…" aria-label="Chatbericht">
+        <button class="btn btn-main" type="submit">Stuur</button>
+      </form>
+    </div>
+    <div class="conn" id="conn"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const MASTER_HASH = '750db0f147fb55c6755f5b3bb2606a35623b43d03c80056c48587dfa2df45c04';
+const GUEST_HASH  = '4bd392bb67f3bf6f8c7eb48ec544a61ac7fb1981eb885a750e661ff100731c9a';
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+function openApp(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';if(typeof onAppReady==='function')onAppReady();}
+async function checkPw(){const h=await sha256(document.getElementById('pwInput').value.trim());if(h===MASTER_HASH||h===GUEST_HASH){sessionStorage.setItem('auth','1');openApp();}else{const i=document.getElementById('pwInput');i.classList.add('err');i.value='';setTimeout(()=>i.classList.remove('err'),600);}}
+window.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('auth')==='1')openApp();});
+</script>
+
+<script>
+/* ---------- De 200 dilemma's ---------- */
+const CATS = [
+ {name:'Eten & drinken', spice:0, items:`Spaghetti|Lasagne;Frietjes|Kroketten;Mosselen|Stoofvlees;Koffie|Thee;Bier|Wijn;Rode wijn|Witte wijn;Chocolade|Chips;Zoet ontbijt|Zout ontbijt;Sushi|Pizza;Barbecue|Gourmet;Mayonaise|Ketchup;Pannenkoeken|Wafels;Croissant|Pistolet;Cava|Champagne;Gin-tonic|Aperol spritz;Trappist|Pintje;Kaas|Dessert;Sterrenrestaurant|Frituur om middernacht;Zelf koken|Laten leveren;Ontbijt op bed|Brunch op een terras;Pikant|Mild;Vlees|Vis;Een jaar vegetarisch|Een jaar geen koffie;IJs|Taart;Oesters|Kaviaar;Fondue|Raclette;Speculoos|Nutella;Cola|Ice tea;Tapas|Eén groot bord;Nooit meer brood|Nooit meer kaas`},
+ {name:'Reizen & plekken', spice:0, items:`Londen|Parijs;Bergen|Zee;Rome|Barcelona;New York|Tokio;Skiën|Zon;Kamperen|Hotel;Roadtrip|Vliegen;Nachttrein|Vliegtuig;Citytrip|Strandvakantie;Italië|Spanje;IJsland|Marokko;Alleen reizen|In groep;Alles plannen|Improviseren;Luxeresort|Hutje in de bergen;Ardennen|Kust;Gent|Antwerpen;Brugge|Brussel;Mont Ventoux|Alpe d'Huez;Toscane|Provence;Zonsopgang|Zonsondergang;Cruise|Fietsvakantie;Safari|Duiken;Eén grote reis per jaar|Vijf kleine;Handbagage|Grote valies;Airbnb|Hotel;Noorderlicht|Tropische sterrenhemel;Nooit meer vliegen|Nooit meer auto;Stad|Platteland;Zomer|Winter;Lente|Herfst`},
+ {name:'Levensstijl', spice:0, items:`Ochtendmens|Nachtuil;Hond|Kat;Netflix|Boek;Film|Serie;Festival|Concert;'s Ochtends sporten|'s Avonds sporten;Racefiets|Mountainbike;Flandrien in de regen|Zon op Mallorca;Kasseien|Klimmen;Tour de France|Ronde van Vlaanderen;Fitness|Buiten sporten;Douche|Bad;Warm douchen|Koud douchen;Opgeruimd huis|Creatieve chaos;Een week zonder smartphone|Een week zonder internet;Instagram|LinkedIn;Podcast|Muziek;Vinyl|Spotify;Stilte|Achtergrondmuziek;Zelf klussen|Vakman bellen;Tuin|Terras;Nieuwe auto|Wereldreis;Elektrisch|Benzine;Sneakers|Nette schoenen;Pak|Jeans;Baard|Glad geschoren;Groot feest|Klein etentje;Veel vrienden|Een paar hele goede;Verjaardag vieren|Verjaardag negeren;Kerst|Oudejaar;Vroeg naar bed|Laat doorzakken;Meditatie|Stevige training;Dagboek|Nooit terugkijken;Tattoo|Nooit;Oud huis met karakter|Nieuwbouw`},
+ {name:'Werk & geld', spice:0, items:`Meer geld|Meer vrije tijd;Zelfstandig|Loondienst;Thuiswerk|Kantoor;Baas zijn|Expert zijn;Vierdagenweek|Vroeger met pensioen;Droomjob, slecht betaald|Saaie job, top betaald;Vergaderen|Mailen;PowerPoint|Excel;Presenteren voor 500 man|1-op-1 onderhandelen;Strategie|Uitvoering;Sparen|Genieten;Aandelen|Vastgoed;Huren|Kopen;Lotto winnen|Droomjob krijgen;Eén miljoen nu|€5.000 per maand, levenslang;Beroemd|Rijk;Gelijk hebben|Gelukkig zijn;Snelle promotie|Fijn team;Collega's als vrienden|Werk en privé strikt gescheiden;Een week zonder mail|Een week zonder koffie;Deadline halen|Perfectie;Ondernemen en falen|Nooit geprobeerd;Sabbatical|Loonsopslag;Startup|Multinational;Open over je loon|Geheimhouden`},
+ {name:'Gewetensvragen', spice:1, items:`Kunnen vliegen|Onzichtbaar zijn;Gedachten lezen|De toekomst zien;Terug in de tijd|Vooruit in de tijd;Nooit meer liegen|Nooit meer de waarheid horen;Altijd 10 minuten te laat|Altijd 20 minuten te vroeg;Alle talen spreken|Elk instrument bespelen;Leven zonder muziek|Leven zonder films;100 worden in matige gezondheid|80 worden in topvorm;Heel je leven op één plek|Nooit langer dan een jaar ergens;Weten wanneer je sterft|Weten hoe je sterft;Een dag in de huid van een ander|Een dag onzichtbaar;Superslim|Superknap;Geen smaak meer|Geen reukzin meer;Iedereen hoort jouw gedachten|Jij hoort die van iedereen;Je zoekgeschiedenis openbaar|Je bankafschriften openbaar;Je ex als baas|Je baas als schoonvader;Eerlijke vriend die kwetst|Lieve vriend die liegt;Wraak nemen|Vergeven;Je grootste geheim onthuld|Je grootste angst beleven;Nooit meer fietsen|Nooit meer reizen;Een week in de cel|Een maand zonder telefoon;Iedereen zegt wat ze écht van je denken|Niemand ooit;Onsterfelijk en alleen|Sterfelijk met je dierbaren;Het antwoord op elke vraag|Nooit meer nieuwsgierig;Wakker worden in 1926|Wakker worden in 2126;Zingen als een operaster|Dansen als een prof;Een spook in huis|Een muis in huis;Je hele dag gefilmd|Je hele nacht gefilmd;Geen internet|Geen warm water;Iets geweldigs dat niemand ziet|Iets middelmatigs met applaus`},
+ {name:'Pikant', spice:2, items:`Eerste date met koffie|Eerste date met cocktails;Kus op de eerste date|Wachten;Dating-app|In het echt ontmoeten;Aanspreken|Aangesproken worden;Flirten via tekst|Flirten oog in oog;Uiterlijk|Humor;Slim|Sexy;Spanning|Zekerheid;Eén wilde nacht|Trage romance;Samenwonen|Latten;Je ex als vriend|Je ex volledig schrappen;Stiekem de gsm van je partner checken|Nooit weten;Jaloerse partner|Onverschillige partner;Romantisch diner|Spontaan weekendje weg;Lingerie|Niets;Licht aan|Licht uit;'s Ochtends (je weet wel)|'s Avonds (je weet wel);Kaarsen|Spiegels;Stil genieten|Luid genieten;Initiatief nemen|Verleid worden;Kus in de nek|Fluisteren in je oor;Massage geven|Massage krijgen;Samen douchen|Samen in bad;Hotelkamer|Eigen bed;Snel en vurig|Traag en teder;Nooit meer zoenen|Nooit meer knuffelen;Iemand die je doet lachen|Iemand die je doet blozen;Fantasieën delen|Fantasieën geheim houden;Date met een collega|Date met de ex van een vriend;Iemand ouder|Iemand jonger;Je crush opbiechten|Meenemen in je graf;Flirten met de barvrouw of -man|Flirten met de buurvrouw of -man;Liefde op het eerste gezicht|Liefde die groeit;Beeldschoon maar saai|Gewoon maar onweerstaanbaar grappig;Je flirtberichten voorgelezen op het werk|Je datinggeschiedenis op een familiefeest;Zoenen in het openbaar|Nooit in het openbaar;Weekend zonder kleren|Weekend zonder telefoon;Handboeien|Blinddoek;Rollenspel|Gewoon jezelf;Op het strand|In een berghut;Wakker worden naast een vreemde|Nooit meer iemand nieuw leren kennen;Onenightstand die je nooit meer ziet|Vriendschap die romantisch wordt;Iemand die veel praat in bed|Iemand die zwijgt;Eerlijk zeggen dat het tegenviel|Beleefd liegen;Je partner mag één nacht met een ander|Jij zou het nooit weten als het gebeurde;Veel ruzie en vurige verzoening|Nooit ruzie en weinig vuur;Tien slechte dates|Eén perfecte date en dan niets meer;Je fantasie uitvoeren|Fantasie laten;Altijd zin maar geen partner|Een partner en nooit zin;De grote liefde nu|Nog tien jaar vrijheid`}
+].map(c=>({...c, items:c.items.split(';').map(s=>s.split('|'))}));
+const TOTAL = CATS.reduce((n,c)=>n+c.items.length,0);
+
+/* ---------- Supabase realtime ---------- */
+const SUPA_URL='https://uvodxrrxsxnjlinqrjlw.supabase.co';
+const SUPA_KEY='sb_publishable_is9JHVr3f7hRfZh31WtLvA_sz5ymhQW';
+let sb=null, channel=null;
+
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+function hashStr(s){let h=1779033703;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function buildOrder(code){
+  const r=rng(hashStr(code)); const out=[];
+  CATS.forEach(c=>{const arr=c.items.map(([a,b])=>({cat:c.name,spice:c.spice,a,b}));
+    for(let i=arr.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}
+    arr.forEach(x=>out.push(r()<.5?x:{...x,a:x.b,b:x.a}));});
+  return out;
+}
+function uid(){return Math.random().toString(36).slice(2,10)}
+function newCode(){const L='ABCDEFGHJKLMNPQRSTUVWXYZ';let s='';for(let i=0;i<4;i++)s+=L[Math.floor(Math.random()*L.length)];return s}
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),1800)}
+
+/* ---------- state ---------- */
+const me={pid:ls('dof-pid')||uid(), name:ls('dof-name')||''};
+ls('dof-pid',me.pid);
+let code=null, order=[], online={}, connected=false;
+let S={pos:0, players:{}, picks:{}, chat:[]};
+
+function save(){ls('dof-room-'+code, JSON.stringify(S))}
+function merge(o){
+  if(!o) return;
+  if(typeof o.pos==='number' && o.pos>S.pos) S.pos=o.pos;
+  Object.assign(S.players, o.players||{});
+  for(const p in (o.picks||{})){S.picks[p]=Object.assign({},o.picks[p],S.picks[p]||{})}
+  const ids=new Set(S.chat.map(m=>m.id));
+  (o.chat||[]).forEach(m=>{if(!ids.has(m.id))S.chat.push(m)});
+  S.chat.sort((a,b)=>a.ts-b.ts); if(S.chat.length>400) S.chat=S.chat.slice(-400);
+}
+function send(event,payload){if(channel) channel.send({type:'broadcast',event,payload}).catch(()=>{})}
+
+/* ---------- lobby ---------- */
+function onAppReady(){
+  const q=new URLSearchParams(location.search).get('room');
+  const invited=q?q.toUpperCase().replace(/[^A-Z]/g,'').slice(0,4):'';
+  $('lobby').innerHTML=`
+    <div style="min-height:80vh;display:flex;flex-direction:column;justify-content:center;align-items:center">
+      <h1 class="gate-title"><span class="l">Dit</span><span class="of">of</span><span class="r">dat</span></h1>
+      <div class="panel stack lobby">
+        <label class="small" for="nameInput">Je naam</label>
+        <input class="field" id="nameInput" maxlength="20" placeholder="Hoe heet je?" value="${esc(me.name)}">
+        ${invited?`<button class="btn btn-main" id="joinInvited">Meedoen met spel ${invited}</button>`
+                 :`<button class="btn btn-main" id="createBtn">Nieuw spel starten</button>
+                   <div class="divider">of</div>
+                   <div class="code-row"><input class="field" id="codeInput" maxlength="4" placeholder="CODE" aria-label="Spelcode"><button class="btn btn-ghost" id="joinBtn">Meedoen</button></div>`}
+        <p class="small">${TOTAL} dilemma's, van spaghetti tot pikant. Jullie kiezen allebei, zien dan elkaars keuze en kunnen erover chatten.</p>
+      </div>
+    </div>`;
+  const needName=()=>{const n=$('nameInput').value.trim();if(!n){$('nameInput').classList.add('err');$('nameInput').focus();setTimeout(()=>$('nameInput').classList.remove('err'),700);return null}me.name=n;ls('dof-name',n);return n};
+  if(invited) $('joinInvited').onclick=()=>{if(needName())startGame(invited)};
+  else{
+    $('createBtn').onclick=()=>{if(needName())startGame(newCode())};
+    const join=()=>{if(!needName())return;const c=$('codeInput').value.toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){$('codeInput').classList.add('err');setTimeout(()=>$('codeInput').classList.remove('err'),700);return}startGame(c)};
+    $('joinBtn').onclick=join; $('codeInput').onkeydown=e=>{if(e.key==='Enter')join()};
+  }
+}
+
+/* ---------- game ---------- */
+function startGame(c){
+  code=c; order=buildOrder(code);
+  try{const saved=JSON.parse(ls('dof-room-'+code)||'null');if(saved)S=Object.assign(S,saved)}catch(e){}
+  S.players[me.pid]=me.name; save();
+  history.replaceState(null,'','?room='+code);
+  $('lobby').style.display='none'; $('game').style.display='block';
+  $('roomCode').textContent=code;
+  $('inviteBtn').onclick=invite;
+  $('chatForm').onsubmit=e=>{e.preventDefault();const t=$('chatInput').value.trim();if(!t)return;
+    const m={id:uid(),pid:me.pid,name:me.name,text:t,pos:S.pos,ts:Date.now()};S.chat.push(m);save();send('chat',m);$('chatInput').value='';renderChat(true)};
+  render(); connect();
+}
+
+function connect(){
+  if(!window.supabase){$('conn').textContent='Geen verbinding met de server. Herlaad de pagina.';return}
+  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  channel=sb.channel('dilemma-'+code,{config:{broadcast:{self:false},presence:{key:me.pid}}});
+  channel
+   .on('broadcast',{event:'hello'},({payload})=>{merge(payload);save();render();send('state',S)})
+   .on('broadcast',{event:'state'},({payload})=>{merge(payload);save();render()})
+   .on('broadcast',{event:'pick'},({payload:p})=>{S.picks[p.pos]=S.picks[p.pos]||{};S.picks[p.pos][p.pid]=p.choice;S.players[p.pid]=p.name;save();render()})
+   .on('broadcast',{event:'next'},({payload:p})=>{if(p.pos>S.pos){S.pos=p.pos;save();render();window.scrollTo({top:0,behavior:'smooth'})}})
+   .on('broadcast',{event:'chat'},({payload:m})=>{if(!S.chat.some(x=>x.id===m.id)){S.chat.push(m);save();renderChat(true);if(navigator.vibrate)navigator.vibrate(30)}})
+   .on('presence',{event:'sync'},()=>{online=channel.presenceState();for(const k in online){const n=online[k][0]&&online[k][0].name;if(n)S.players[k]=n}renderHeader();renderStage()})
+   .subscribe(async status=>{
+     connected=status==='SUBSCRIBED';
+     $('conn').textContent=connected?'':(status==='CHANNEL_ERROR'||status==='TIMED_OUT'?'Verbinding verbroken, even geduld…':'');
+     if(connected){await channel.track({name:me.name});send('hello',S)}
+   });
+}
+
+function others(){return Object.keys(S.players).filter(p=>p!==me.pid)}
+function partnerName(){const o=others();return o.length?o.map(p=>S.players[p]).join(' & '):'je partner'}
+function revealed(pos){const picks=S.picks[pos]||{};const ps=Object.keys(S.players);return ps.length>=2&&ps.every(p=>picks[p])}
+function scoreInfo(){let m=0,n=0;for(const pos in S.picks){if(!revealed(+pos))continue;n++;const v=Object.values(S.picks[pos]);if(v.every(x=>x===v[0]))m++}return{m,n}}
+
+function render(){renderHeader();renderStage();renderChat()}
+
+function renderHeader(){
+  const ids=Object.keys(S.players);
+  $('people').innerHTML=ids.map(p=>`<span><span class="dot ${online[p]||p===me.pid&&connected?'on':''}"></span> ${esc(p===me.pid?'jij':S.players[p])}</span>`).join('')
+    +(ids.length<2?`<span>wacht op speler 2</span>`:'');
+}
+
+let lastVerdictPos=-1;
+function renderStage(){
+  const st=$('stage');
+  if(S.pos>=order.length){const {m,n}=scoreInfo();
+    st.innerHTML=`<div class="end"><h2>Alles gekozen</h2><p>Jullie dachten ${m} van de ${n} keer hetzelfde.</p><button class="btn btn-main" style="max-width:300px" onclick="location.href=location.pathname">Nieuw spel</button></div>`;return}
+  const it=order[S.pos], picks=S.picks[S.pos]||{}, mine=picks[me.pid], rev=revealed(S.pos);
+  const whoChose=side=>Object.keys(picks).filter(p=>picks[p]===side).map(p=>`<span class="chip">${esc(p===me.pid?'jij':S.players[p]||'?')}</span>`).join('');
+  const partnerPicked=others().some(p=>picks[p]);
+  const {m,n}=scoreInfo();
+  let status;
+  if(rev) status='';
+  else if(others().length===0) status='Nodig iemand uit om samen te spelen.';
+  else if(mine) status=`Wachten op ${esc(partnerName())}…`;
+  else if(partnerPicked) status=`${esc(partnerName())} heeft al gekozen. Jij nog.`;
+  else status='Kies maar.';
+  let verdict='';
+  if(rev){const v=Object.values(picks);const same=v.every(x=>x===v[0]);
+    verdict=same?`<div class="verdict match">Match!</div>`:`<div class="verdict">Oei, jullie verschillen</div>`;
+    if(lastVerdictPos!==S.pos){lastVerdictPos=S.pos;if(navigator.vibrate)navigator.vibrate(same?[40,60,40]:60)}}
+  const opt=(side,txt)=>`<button class="opt ${side} ${rev&&!Object.values(picks).includes(side)?'faded':''} ${mine===side?'mine':''}" data-side="${side}" ${mine?'disabled':''} aria-pressed="${mine===side}">
+      <span class="txt">${esc(txt)}</span>
+      <span class="chips">${rev?whoChose(side):(mine===side?'<span class="chip">jouw keuze</span>':'')}</span></button>`;
+  st.innerHTML=`
+    <div class="meta"><span>${esc(it.cat)} ${'🌶️'.repeat(it.spice)}</span><span>${S.pos+1} / ${order.length}${n?` · <span class="score"><b>${m}</b> ${m===1?'match':'matches'}</span>`:''}</span></div>
+    <div class="duel">${opt('a',it.a)}<div class="of-badge">of</div>${opt('b',it.b)}</div>
+    ${verdict}
+    ${status?`<div class="status">${status}</div>`:''}
+    <div class="actions">${rev?`<button class="btn btn-main" id="nextBtn">Volgende dilemma</button>`:`<button class="skip" id="skipBtn">Overslaan</button>`}</div>`;
+  st.querySelectorAll('.opt').forEach(b=>b.onclick=()=>pick(b.dataset.side));
+  const nb=$('nextBtn')||$('skipBtn'); if(nb) nb.onclick=next;
+}
+
+function pick(side){
+  if((S.picks[S.pos]||{})[me.pid]) return;
+  S.picks[S.pos]=S.picks[S.pos]||{}; S.picks[S.pos][me.pid]=side; save();
+  send('pick',{pos:S.pos,pid:me.pid,name:me.name,choice:side}); render();
+}
+function next(){S.pos=S.pos+1;save();send('next',{pos:S.pos});render();window.scrollTo({top:0,behavior:'smooth'});$('chatInput').blur()}
+
+function renderChat(scroll){
+  const list=S.chat.filter(m=>m.pos===S.pos);
+  $('msgs').innerHTML=list.length?list.map(m=>`<div class="msg ${m.pid===me.pid?'me':''}"><span class="who">${esc(m.pid===me.pid?'jij':m.name)}</span>${esc(m.text)}</div>`).join('')
+    :`<div class="empty">Nog niets gezegd over dit dilemma.</div>`;
+  $('msgs').scrollTop=$('msgs').scrollHeight;
+}
+
+async function invite(){
+  const url=location.origin+location.pathname+'?room='+code;
+  const text=`Speel "Dit of dat" met me. Spelcode ${code}.`;
+  if(navigator.share){try{await navigator.share({title:'Dit of dat',text,url});return}catch(e){if(e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(text+' '+url);toast('Link gekopieerd')}catch(e){prompt('Kopieer deze link:',url)}
+}
+</script>
+</body>
+</html>
