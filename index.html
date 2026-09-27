@@ -144,10 +144,10 @@ button{cursor:pointer}
 
 <script>
 const MASTER_HASH = '750db0f147fb55c6755f5b3bb2606a35623b43d03c80056c48587dfa2df45c04';
-const GUEST_HASH  = '4bd392bb67f3bf6f8c7eb48ec544a61ac7fb1981eb885a750e661ff100731c9a';
+const GUEST_HASH  = '476ad3f53a5842ca9fed2621139c7ed10ec8a77c29bf1b85b873c9e2a4e9b37c';
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 function openApp(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';if(typeof onAppReady==='function')onAppReady();}
-async function checkPw(){const h=await sha256(document.getElementById('pwInput').value.trim());if(h===MASTER_HASH||h===GUEST_HASH){sessionStorage.setItem('auth','1');openApp();}else{const i=document.getElementById('pwInput');i.classList.add('err');i.value='';setTimeout(()=>i.classList.remove('err'),600);}}
+async function checkPw(){const v=document.getElementById('pwInput').value.trim();const h=await sha256(v);const g=await sha256(v.toLowerCase());if(h===MASTER_HASH||g===GUEST_HASH){sessionStorage.setItem('auth','1');openApp();}else{const i=document.getElementById('pwInput');i.classList.add('err');i.value='';setTimeout(()=>i.classList.remove('err'),600);}}
 window.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('auth')==='1')openApp();});
 </script>
 
