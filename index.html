@@ -83,7 +83,7 @@ button{cursor:pointer}
 .verdict.match{color:var(--gold)}
 @media (prefers-reduced-motion:no-preference){.verdict{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
-.actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
 .actions .btn{max-width:320px}
 .skip{background:none;border:none;color:var(--muted);text-decoration:underline;font-size:.9rem;padding:6px}
 
@@ -137,6 +137,7 @@ button{cursor:pointer}
         <button class="btn btn-main" type="submit">Stuur</button>
       </form>
     </div>
+    <div class="actions" id="actions"></div>
     <div class="conn" id="conn"></div>
   </div>
 </div>
@@ -278,7 +279,7 @@ let lastVerdictPos=-1;
 function renderStage(){
   const st=$('stage');
   if(S.pos>=order.length){const {m,n}=scoreInfo();
-    st.innerHTML=`<div class="end"><h2>Alles gekozen</h2><p>Jullie dachten ${m} van de ${n} keer hetzelfde.</p><button class="btn btn-main" style="max-width:300px" onclick="location.href=location.pathname">Nieuw spel</button></div>`;return}
+    $('actions').innerHTML='';st.innerHTML=`<div class="end"><h2>Alles gekozen</h2><p>Jullie dachten ${m} van de ${n} keer hetzelfde.</p><button class="btn btn-main" style="max-width:300px" onclick="location.href=location.pathname">Nieuw spel</button></div>`;return}
   const it=order[S.pos], picks=S.picks[S.pos]||{}, mine=picks[me.pid], rev=revealed(S.pos);
   const whoChose=side=>Object.keys(picks).filter(p=>picks[p]===side).map(p=>`<span class="chip">${esc(p===me.pid?'jij':S.players[p]||'?')}</span>`).join('');
   const partnerPicked=others().some(p=>picks[p]);
@@ -301,7 +302,8 @@ function renderStage(){
     <div class="duel">${opt('a',it.a)}<div class="of-badge">of</div>${opt('b',it.b)}</div>
     ${verdict}
     ${status?`<div class="status">${status}</div>`:''}
-    <div class="actions">${rev?`<button class="btn btn-main" id="nextBtn">Volgende dilemma</button>`:`<button class="skip" id="skipBtn">Overslaan</button>`}</div>`;
+`;
+  $('actions').innerHTML=rev?`<button class="btn btn-main" id="nextBtn">Volgende dilemma</button>`:`<button class="skip" id="skipBtn">Overslaan</button>`;
   st.querySelectorAll('.opt').forEach(b=>b.onclick=()=>pick(b.dataset.side));
   const nb=$('nextBtn')||$('skipBtn'); if(nb) nb.onclick=next;
 }
