@@ -21,7 +21,7 @@
 }
 *,*::before,*::after{box-sizing:inherit}
 html,body{margin:0;min-height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body{background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath d='M30 42c-6-5-12-9-12-15a6 6 0 0 1 12-2 6 6 0 0 1 12 2c0 6-6 10-12 15z' fill='%23FF7A9A' fill-opacity='.05'/%3E%3Cpath d='M90 102c-4-3-8-6-8-10a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 4-4 7-8 10z' fill='%236FE3C8' fill-opacity='.05'/%3E%3C/svg%3E");color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
@@ -76,7 +76,15 @@ button{cursor:pointer}
 .opt.mine{outline:4px solid var(--ink);outline-offset:4px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;min-height:30px}
 .chip{background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 12px;font-size:.85rem;font-weight:600}
-.of-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:var(--bg);border:3px solid var(--bg);display:grid;place-items:center;font-weight:800;font-size:1rem;color:var(--ink);pointer-events:none;z-index:2}
+.of-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:60px;display:grid;place-items:center;font-weight:800;font-size:1rem;color:var(--ink);pointer-events:none;z-index:2}
+.of-badge svg{position:absolute;inset:0;width:100%;height:100%}
+.of-badge span{position:relative;margin-top:-6px}
+@media (prefers-reduced-motion:no-preference){.of-badge svg{animation:beat 1.6s ease-in-out infinite}}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.12)}24%{transform:scale(1)}36%{transform:scale(1.08)}}
+.heart-fly{position:fixed;bottom:-40px;pointer-events:none;z-index:50;font-size:28px;animation:fly 2.2s ease-out forwards}
+@keyframes fly{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1}100%{transform:translateY(-85vh) translateX(var(--dx)) scale(1.2) rotate(var(--rot));opacity:0}}
+.gate-title .of{color:var(--a)}
+.gate-title .of i{font-style:normal;color:var(--muted);margin:0 .25em}
 
 .status{text-align:center;margin:22px 0 6px;min-height:1.6em;color:var(--muted)}
 .verdict{text-align:center;margin:18px 0 4px;font-size:clamp(1.6rem,7vw,2.4rem);font-weight:800;letter-spacing:-.02em}
@@ -97,7 +105,7 @@ button{cursor:pointer}
 .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:6px 0 10px}
 .chat form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
 .chat .field{padding:11px 14px}
-.chat .btn{width:auto;padding:11px 16px}
+.chat .btn{width:auto;padding:11px 16px;white-space:nowrap}
 
 .end{text-align:center;padding:30px 0}
 .end h2{font-size:2.4rem;margin:0 0 8px;letter-spacing:-.02em}
@@ -110,7 +118,7 @@ button{cursor:pointer}
 
 <!-- PASSWORD GATE -->
 <div id="gate">
-  <h1 class="gate-title"><span class="l">Dit</span><span class="of">of</span><span class="r">dat</span></h1>
+  <h1 class="gate-title"><span class="l">Dit</span><span class="of">♥<i>of</i>♥</span><span class="r">dat</span></h1>
   <div class="panel stack">
     <input type="password" id="pwInput" class="field" placeholder="Wachtwoord" aria-label="Wachtwoord" onkeydown="if(event.key==='Enter')checkPw()">
     <button class="btn btn-main" onclick="checkPw()">Toegang</button>
@@ -135,7 +143,7 @@ button{cursor:pointer}
       <div class="msgs" id="msgs" aria-live="polite"></div>
       <form id="chatForm" autocomplete="off">
         <input class="field" id="chatInput" maxlength="300" placeholder="Zeg er iets over…" aria-label="Chatbericht">
-        <button class="btn btn-main" type="submit">Stuur</button>
+        <button class="btn btn-main" type="submit">Stuur ♥</button>
       </form>
     </div>
     <div class="actions" id="actions"></div>
@@ -215,7 +223,7 @@ function onAppReady(){
   const invited=q?q.toUpperCase().replace(/[^A-Z]/g,'').slice(0,4):'';
   $('lobby').innerHTML=`
     <div style="min-height:80vh;display:flex;flex-direction:column;justify-content:center;align-items:center">
-      <h1 class="gate-title"><span class="l">Dit</span><span class="of">of</span><span class="r">dat</span></h1>
+      <h1 class="gate-title"><span class="l">Dit</span><span class="of">♥<i>of</i>♥</span><span class="r">dat</span></h1>
       <div class="panel stack lobby">
         <label class="small" for="nameInput">Je naam</label>
         <input class="field" id="nameInput" maxlength="20" placeholder="Hoe heet je?" value="${esc(me.name)}">
@@ -300,14 +308,14 @@ function renderStage(){
   else status='Kies maar.';
   let verdict='';
   if(rev){const v=Object.values(picks);const same=v.every(x=>x===v[0]);
-    verdict=same?`<div class="verdict match">Match!</div>`:`<div class="verdict">Oei, jullie verschillen</div>`;
-    if(lastVerdictPos!==S.pos){lastVerdictPos=S.pos;if(navigator.vibrate)navigator.vibrate(same?[40,60,40]:60)}}
+    verdict=same?`<div class="verdict match">💘 Match! 💘</div>`:`<div class="verdict">Oei, jullie verschillen</div>`;
+    if(lastVerdictPos!==S.pos){lastVerdictPos=S.pos;if(navigator.vibrate)navigator.vibrate(same?[40,60,40]:60);if(same)heartBurst()}}
   const opt=(side,txt)=>`<button class="opt ${side} ${rev&&!Object.values(picks).includes(side)?'faded':''} ${mine===side?'mine':''}" data-side="${side}" ${mine?'disabled':''} aria-pressed="${mine===side}">
       <span class="txt">${esc(txt)}</span>
       <span class="chips">${rev?whoChose(side):(mine===side?'<span class="chip">jouw keuze</span>':'')}</span></button>`;
   st.innerHTML=`
-    <div class="meta"><span>${esc(it.cat)} ${'🌶️'.repeat(it.spice)}</span><span>${S.pos+1} / ${order.length}${n?` · <span class="score"><b>${m}</b> ${m===1?'match':'matches'}</span>`:''}</span></div>
-    <div class="duel">${opt('a',it.a)}<div class="of-badge">of</div>${opt('b',it.b)}</div>
+    <div class="meta"><span>${esc(it.cat)} ${'🌶️'.repeat(it.spice)}</span><span>${S.pos+1} / ${order.length}${n?` · <span class="score">💗 <b>${m}</b> ${m===1?'match':'matches'}</span>`:''}</span></div>
+    <div class="duel">${opt('a',it.a)}<div class="of-badge"><svg viewBox="0 0 66 60" aria-hidden="true"><path d="M33 57C14 43 3 33 3 19 3 9 11 2 20 2c6 0 10 3 13 8 3-5 7-8 13-8 9 0 17 7 17 17 0 14-11 24-30 38z" fill="#FF4D7E" stroke="#24122E" stroke-width="3"/></svg><span>of</span></div>${opt('b',it.b)}</div>
     ${verdict}
     ${status?`<div class="status">${status}</div>`:''}
 `;
@@ -316,6 +324,14 @@ function renderStage(){
   const nb=$('nextBtn')||$('skipBtn'); if(nb) nb.onclick=next;
 }
 
+function heartBurst(){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const H=['❤️','💖','💘','💕','💗','💓'];
+  for(let i=0;i<18;i++){const el=document.createElement('span');el.className='heart-fly';el.textContent=H[i%H.length];
+    el.style.left=(5+Math.random()*90)+'vw';el.style.fontSize=(18+Math.random()*26)+'px';
+    el.style.setProperty('--dx',(Math.random()*80-40)+'px');el.style.setProperty('--rot',(Math.random()*60-30)+'deg');
+    el.style.animationDelay=(Math.random()*.5)+'s';document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
+}
 function pick(side){
   if((S.picks[S.pos]||{})[me.pid]) return;
   S.picks[S.pos]=S.picks[S.pos]||{}; S.picks[S.pos][me.pid]=side; save();
