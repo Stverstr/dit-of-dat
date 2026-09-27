@@ -66,7 +66,7 @@ button{cursor:pointer}
 
 /* the split */
 .duel{position:relative;display:grid;grid-template-columns:1fr;gap:10px}
-@media(min-width:620px){.duel{grid-template-columns:1fr 1fr}}
+
 .opt{position:relative;min-height:150px;border-radius:26px;border:none;padding:22px 20px 20px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;transition:transform .15s ease, opacity .25s ease}
 .opt .txt{font-size:clamp(1.45rem,5.6vw,2.1rem);font-weight:800;line-height:1.08;letter-spacing:-.02em;color:var(--bg)}
 .opt.a{background:var(--a)} .opt.b{background:var(--b)}
@@ -112,6 +112,18 @@ button{cursor:pointer}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;font-size:.9rem;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 .conn{font-size:.8rem;color:var(--a);text-align:center;margin-top:8px}
+.sep{align-self:center;font-size:.78rem;color:var(--muted);text-align:center;margin:8px 0 2px;max-width:90%}
+.sep b{color:var(--ink);font-weight:600}
+#game{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "chat" "actions" "conn";column-gap:28px}
+#game>.top{grid-area:top} #stage{grid-area:stage} #game>.chat{grid-area:chat} #actions{grid-area:actions} #conn{grid-area:conn}
+@media(min-width:900px){
+  #game{max-width:1200px;grid-template-columns:minmax(0,520px) minmax(320px,1fr);grid-template-rows:auto auto auto 1fr;
+    grid-template-areas:"top top" "stage chat" "actions chat" "conn chat";align-items:start}
+  #game>.chat{margin-top:0;position:sticky;top:calc(16px + env(safe-area-inset-top,0px));height:calc(100vh - 110px);display:flex;flex-direction:column}
+  #game>.chat .msgs{flex:1;max-height:none}
+  .opt{min-height:120px}
+  .opt .txt{font-size:clamp(1.3rem,2.2vw,1.8rem)}
+}
 </style>
 </head>
 <body>
@@ -142,7 +154,7 @@ button{cursor:pointer}
     <div class="chat">
       <div class="msgs" id="msgs" aria-live="polite"></div>
       <form id="chatForm" autocomplete="off">
-        <input class="field" id="chatInput" maxlength="300" placeholder="Zeg er iets over…" aria-label="Chatbericht">
+        <input class="field" id="chatInput" maxlength="300" placeholder="Typ een bericht…" aria-label="Chatbericht">
         <button class="btn btn-main" type="submit">Stuur ♥</button>
       </form>
     </div>
@@ -250,7 +262,7 @@ function startGame(c){
   order=buildOrder(seedFor(S.round||0));
   S.players[me.pid]=me.name; save();
   history.replaceState(null,'','?room='+code);
-  $('lobby').style.display='none'; $('game').style.display='block';
+  $('lobby').style.display='none'; $('game').style.display='grid';
   $('roomCode').textContent=code;
   $('inviteBtn').onclick=invite;
   $('resetBtn').onclick=resetGame;
@@ -340,9 +352,13 @@ function pick(side){
 function next(){S.pos=S.pos+1;save();send('next',{round:S.round||0,pos:S.pos});render();window.scrollTo({top:0,behavior:'smooth'});$('chatInput').blur()}
 
 function renderChat(scroll){
-  const list=S.chat.filter(m=>m.pos===S.pos);
-  $('msgs').innerHTML=list.length?list.map(m=>`<div class="msg ${m.pid===me.pid?'me':''}"><span class="who">${esc(m.pid===me.pid?'jij':m.name)}</span>${esc(m.text)}</div>`).join('')
-    :`<div class="empty">Nog niets gezegd over dit dilemma.</div>`;
+  const list=S.chat.filter(m=>(m.round||0)===(S.round||0));
+  let prev=null, html='';
+  list.forEach(m=>{
+    if(m.pos!==prev){prev=m.pos;const it=order[m.pos];if(it)html+=`<div class="sep"><b>${esc(it.a)}</b> of <b>${esc(it.b)}</b></div>`}
+    html+=`<div class="msg ${m.pid===me.pid?'me':''}"><span class="who">${esc(m.pid===me.pid?'jij':m.name)}</span>${esc(m.text)}</div>`;
+  });
+  $('msgs').innerHTML=html||`<div class="empty">Hier chatten jullie door tijdens het hele spel.</div>`;
   $('msgs').scrollTop=$('msgs').scrollHeight;
 }
 
